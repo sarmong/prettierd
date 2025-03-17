@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs";
 import type Prettier from "prettier";
 import { promisify } from "node:util";
 import { readdir } from "node:fs/promises";
@@ -92,21 +93,26 @@ async function resolvePrettier(
   env: EnvMap,
   filePath: string,
 ): Promise<ResolvedPrettier | undefined> {
-  let path: string;
+  let prettierPath: string;
+
+  if (fs.existsSync(path.join(process.cwd(), ".pnp.cjs"))) {
+    require(path.join(process.cwd(), ".pnp.cjs")).setup();
+  }
+
   try {
-    path = require.resolve("prettier", { paths: [filePath] });
+    prettierPath = require.resolve("prettier", { paths: [filePath] });
   } catch (e) {
     if (env.PRETTIERD_LOCAL_PRETTIER_ONLY) {
       return undefined;
     }
-    path = require.resolve("prettier");
+    prettierPath = require.resolve("prettier");
   }
 
-  return import(path).then((v) => {
+  return import(prettierPath).then((v) => {
     if (v !== undefined) {
       return {
         module: v,
-        filePath: path,
+        filePath: prettierPath,
       };
     }
     return undefined;
